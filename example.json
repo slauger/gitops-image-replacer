@@ -1,0 +1,11 @@
+{
+  "gitops-image-replacer": [
+    {
+      "repository": "slauger/hcloud-okd4",
+      "branch": "master",
+      "file": "Dockerfile",
+      "when": "^refs/heads/(master|main|release/.*)$",
+      "except": "^refs/heads/feature/"
+    }
+  ]
+}
