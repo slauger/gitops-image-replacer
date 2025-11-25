@@ -98,13 +98,9 @@ jobs:
 
       - name: Python Semantic Release
         id: semantic
-        uses: python-semantic-release/python-semantic-release@v10.5.2
+        uses: python-semantic-release/python-semantic-release@v9.8.8
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          vcs_release: true
-          commit: false
-          tag: true
-          push: true
 
   publish-testpypi:
     name: Publish to TestPyPI
