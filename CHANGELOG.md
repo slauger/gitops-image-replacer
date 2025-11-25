@@ -10,6 +10,8 @@ BREAKING CHANGE: First stable release ([`563f17a`](https://github.com/slauger/gi
 
 ### Chore
 
+* chore(release): 1.0.0 ([`f1e6589`](https://github.com/slauger/gitops-image-replacer/commit/f1e658925bf1d4d07c56d3ea9c374272498e261d))
+
 * chore(release): 0.1.0 ([`9097cfd`](https://github.com/slauger/gitops-image-replacer/commit/9097cfdfb271d77f7c97aacede3885d31a90da32))
 
 ### Documentation
@@ -44,6 +46,8 @@ Changes:
 * feat: refactoring (caching, multiple issues) ([`7b79ad3`](https://github.com/slauger/gitops-image-replacer/commit/7b79ad3580839c121e72c4ed20cbbbf1083a4bd7))
 
 ### Fix
+
+* fix: disable vcs_release to prevent 422 errors ([`4d5effb`](https://github.com/slauger/gitops-image-replacer/commit/4d5effb9ef60abf076a47ce220a81eec3805bc2d))
 
 * fix: use working release pipeline from netscaler-certbot-hook
 
