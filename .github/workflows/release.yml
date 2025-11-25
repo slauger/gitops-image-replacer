@@ -101,6 +101,11 @@ jobs:
         uses: python-semantic-release/python-semantic-release@v9.8.8
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          commit: false
+          changelog: false
+          vcs_release: false
+          tag: true
+          push: true
 
   publish-testpypi:
     name: Publish to TestPyPI
