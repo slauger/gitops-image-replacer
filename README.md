@@ -1,16 +1,18 @@
 # gitops-image-replacer
 
-A small CLI tool that replaces container image references (tag and/or digest) in files across one or more GitHub repositories and optionally commits the changes.
+A lightweight CLI tool that automates container image updates in GitOps repositories. Replace image tags and/or digests across multiple GitHub repositories with a single command, enabling automated deployment workflows.
 
 ## Features
 
-- Dry-run and apply mode
-- Optional CI mode validating `GIT_REF` against regex patterns
-- Supports tags *and* digests (e.g., `registry.io/ns/app:1.2.3@sha256:...`)
-- Per-repository/file configuration (JSON and YAML are supported)
-- Safe regex replacement with escaping
-- Robust HTTP calls with retries and timeouts
-- Clean logging with optional `--verbose`
+- **Flexible Modes**: Dry-run for validation, apply mode for commits
+- **CI/CD Integration**: Built-in CI mode with `GIT_REF` pattern matching
+- **Complete Image Support**: Handles tags, digests, and combined references (e.g., `registry.io/ns/app:1.2.3@sha256:...`)
+- **Multiple Repositories**: Update images across any number of repos and files
+- **Configuration Formats**: JSON (default) and YAML support
+- **Performance Optimized**: Response caching eliminates duplicate API calls
+- **Safe Operations**: Regex escaping prevents unintended replacements
+- **Robust HTTP**: Automatic retries, timeouts, and error handling
+- **Clean Logging**: Minimal output by default, verbose mode for debugging
 
 ## Requirements
 
@@ -145,13 +147,60 @@ gitops-image-replacer:
     except: '^refs/heads/legacy/'
 ```
 
+## Supported Image Formats
+
+The tool validates and matches container images using a comprehensive regex pattern. All components are optional except the image name.
+
+### Regex Pattern
+
+```regex
+(?P<repository>[\w.\-_]+((?::\d+|)(?=/[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+))|)(?:/|)(?P<image>[a-zA-Z0-9.\-_]+(?:/[a-zA-Z0-9.\-_]+|))(:(?P<tag>[\w.\-_]{1,127})|)?(@(?P<digest>sha256:[a-f0-9]{64}))?
+```
+
+### Pattern Components
+
+- **Repository/Registry** (optional): `docker.io`, `gcr.io`, `registry.example.com:5000`
+  - Supports hostnames with optional ports
+  - Alphanumeric, dots, dashes, underscores
+- **Image Name** (required): `library/nginx`, `myorg/myapp`, `MyApp`
+  - Case-sensitive (supports both uppercase and lowercase)
+  - Can include organization/namespace
+- **Tag** (optional): `:latest`, `:v1.2.3`, `:20241125-abc123`
+  - Max 127 characters
+  - Alphanumeric, dots, dashes, underscores
+- **Digest** (optional): `@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1`
+  - SHA256 hash (64 hex characters, lowercase)
+
+### Valid Examples
+
+```bash
+# Simple image name
+nginx
+
+# With registry and tag
+docker.io/library/nginx:1.25
+
+# With digest only
+gcr.io/myproject/myapp@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
+
+# Tag and digest (immutable reference)
+registry.example.com:5000/org/app:v2.0.0@sha256:abc...
+
+# Case-sensitive names
+ghcr.io/MyOrg/MyApp:latest
+```
+
 ## How it works
 
-1. Validate CLI/env and configuration file.
-2. Precheck each target (file exists? branch accessible? permissions ok?).  
-3. Download the file, replace the image reference (`<name>[:<tag>][@<digest>]`) using a safe regex.  
-4. If changes are detected and `--apply` is set, commit via GitHub Contents API (`PUT /repos/{owner}/{repo}/contents/{path}`).  
-5. Exit code `0` on success, non-zero on failures.
+1. **Validation**: Checks CLI arguments, environment variables, and configuration file
+2. **Precheck Phase**: Validates access to all target repositories/files (caches responses)
+3. **Replace Phase**: Downloads files (reuses cached data), performs safe regex replacement
+4. **Commit Phase**: If `--apply` is set and changes detected, commits via GitHub Contents API
+5. **Exit Codes**: Returns `0` on success, non-zero on failures
+
+### Performance Optimization
+
+The tool caches file contents from the precheck phase, eliminating duplicate API calls during the replace phase. This reduces GitHub API usage by approximately 50% in typical scenarios.
 
 ## Exit Codes
 
@@ -160,14 +209,109 @@ gitops-image-replacer:
 
 ## Best Practices
 
-- Start with a **dry-run**.
-- Use `--verbose` only in trusted logs (it can print file contents).
-- Add `^...$` anchors in `when/except` if you need full matches.
-- Keep config close to where it’s used; naming the file `gitops-image-replacer.json` makes ownership obvious.
+### Testing and Validation
+- **Always start with dry-run**: Test your configuration without `--apply` first
+- **Use verbose mode carefully**: `--verbose` prints file contents - avoid in CI logs with sensitive data
+- **Validate regex patterns**: Use `^...$` anchors in `when`/`except` for full string matches
+
+### Configuration Management
+- **Keep config versioned**: Store `gitops-image-replacer.json` in your repository
+- **Use meaningful names**: Standard naming makes the file's purpose obvious
+- **Document patterns**: Comment your regex patterns (especially in CI mode)
+
+### Security
+- **Limit token scope**: Use minimal permissions (contents: write)
+- **Rotate tokens**: Regularly update GitHub tokens
+- **Review changes**: Use dry-run before production deployments
+
+### Performance
+- **Minimize targets**: Only configure files that need updates
+- **Use CI patterns wisely**: `when`/`except` patterns reduce unnecessary runs
+- **Leverage caching**: The tool automatically caches API responses
 
 ## Troubleshooting
 
-- **401 Unauthorized**: Check token scopes and repository access.
-- **404 Not Found**: Verify `repository`, `branch`, and `file` path.
-- **No changes detected**: Ensure the target file actually contains the image name you pass; tags/digests are optional in the match.
-- **Rate limiting (429/403)**: Retries are built-in; consider reducing frequency or increasing concurrency limits.
+### Common Issues
+
+**401 Unauthorized**
+- Verify `GITHUB_TOKEN` is set correctly
+- Check token has `repo` or `public_repo` scope
+- For GitHub Enterprise, confirm token has access to the organization
+
+**404 Not Found**
+- Verify `repository`, `branch`, and `file` paths in config
+- Check branch name spelling (case-sensitive)
+- Ensure file exists at the specified path
+
+**No changes detected**
+- Confirm target file contains the exact image name (case-sensitive)
+- Tags and digests are optional in the search pattern
+- Use `--verbose` to see file contents and verify the image reference format
+
+**Rate limiting (429/403)**
+- Built-in retries handle temporary rate limits
+- Reduce execution frequency in CI/CD pipelines
+- Consider using GitHub App tokens for higher limits
+
+### Debug Mode
+
+Run with `--verbose` to see:
+- Full API URLs being called
+- Complete file contents before replacement
+- Desired file contents after replacement
+
+**Warning**: Verbose mode may expose sensitive data in logs.
+
+## Use Cases
+
+### Automated Deployment Pipeline
+
+Update production manifests when a new image is built:
+
+```bash
+# In your CI/CD pipeline after building image
+./gitops-image-replacer.py --apply docker.io/myorg/myapp:${CI_COMMIT_SHA}
+```
+
+### Multi-Environment Updates
+
+Use CI mode to update different environments based on branch:
+
+```json
+{
+  "gitops-image-replacer": [
+    {
+      "repository": "myorg/gitops-production",
+      "branch": "main",
+      "file": "apps/myapp/deployment.yaml",
+      "when": "^refs/heads/main$"
+    },
+    {
+      "repository": "myorg/gitops-staging",
+      "branch": "main",
+      "file": "apps/myapp/deployment.yaml",
+      "when": "^refs/heads/(main|release/.*)$"
+    }
+  ]
+}
+```
+
+### Digest Pinning
+
+Update images with immutable digest references:
+
+```bash
+./gitops-image-replacer.py --apply \
+  registry.example.com/myapp:v2.0.0@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
+```
+
+## Contributing
+
+Contributions are welcome! Please ensure:
+- Code follows existing style and patterns
+- Changes are tested with both dry-run and apply modes
+- Documentation is updated for new features
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

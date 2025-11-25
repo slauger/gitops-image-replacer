@@ -27,6 +27,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 DEFAULT_CONFIG = "gitops-image-replacer.json"
+TAG_DIGEST_PATTERN = r'(:(?P<tag>[\w.\-_]{1,127})|)?(@(?P<digest>sha256:[a-f0-9]{64}))?'
 
 def make_session():
     sess = requests.Session()
@@ -134,7 +135,7 @@ def main():
         sys.exit(0)
 
     # validate image and capture components
-    image_re = r'(?P<repository>[\w.\-_]+((?::\d+|)(?=/[a-z0-9._-]+/[a-z0-9._-]+))|)(?:/|)(?P<image>[a-z0-9.\-_]+(?:/[a-z0-9.\-_]+|))(:(?P<tag>[\w.\-_]{1,127})|)?(@(?P<digest>sha256:[a-f0-9]{64}))?'
+    image_re = r'(?P<repository>[\w.\-_]+((?::\d+|)(?=/[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+))|)(?:/|)(?P<image>[a-zA-Z0-9.\-_]+(?:/[a-zA-Z0-9.\-_]+|))' + TAG_DIGEST_PATTERN
     result = re.search(image_re, args.image)
     if not result:
         print(f"error: it seems that '{args.image}' is not a valid image url")
@@ -158,16 +159,20 @@ def main():
     }
     timeout = 30
 
-    # precheck block
+    # precheck block (cache responses for later reuse)
+    cache = {}
     for repo in config['gitops-image-replacer']:
         repo_path = repo['repository']
         branch = repo['branch']
         file_path = repo['file']
+        cache_key = f"{repo_path}:{branch}:{file_path}"
+
         print(f"info: validate if {file_path} from repository {repo_path} in branch {branch} exists")
 
         # Use GET for reliability; do not decode content here
-        url = f"{args.api}/repos/{repo_path}/contents/{file_path}?ref={urllib.parse.quote_plus(branch)}"
-        print(url)
+        url = f"{args.api}/repos/{repo_path}/contents/{file_path}?ref={urllib.parse.quote(branch)}"
+        if args.verbose:
+            print(url)
         precheck = session.get(url, headers=headers, timeout=timeout)
         if precheck.status_code == 401:
             print("error: 401 unauthorized - maybe your token does not have access to the defined repository")
@@ -178,6 +183,9 @@ def main():
         elif precheck.status_code != 200:
             print(f"error: unknown error with HTTP code {precheck.status_code}")
             exit_code = 1
+        else:
+            # Cache successful response for later reuse
+            cache[cache_key] = precheck.json()
 
     if exit_code != 0:
         sys.exit(exit_code)
@@ -202,21 +210,26 @@ def main():
                 else:
                     print(f"info: git-ref {git_ref} does not match except pattern ('{repo['except']}')")
 
-        # get file
-        print(f"info: fetch {file_path} from repository {repo_path} in branch {branch}")
-        fetch_url = f"{args.api}/repos/{repo_path}/contents/{file_path}?ref={urllib.parse.quote_plus(branch)}"
-        fetch = session.get(fetch_url, headers=headers, timeout=timeout)
-        if fetch.status_code != 200:
-            try:
-                fetch_json = fetch.json()
-                msg = fetch_json.get('message', 'unknown error')
-            except Exception:
-                msg = 'unknown error'
-            print(f"error: {msg}")
-            exit_code = 1
-            continue
+        # get file (reuse cached data from precheck if available)
+        cache_key = f"{repo_path}:{branch}:{file_path}"
+        if cache_key in cache:
+            print(f"info: using cached data for {file_path} from repository {repo_path}")
+            fetch_json = cache[cache_key]
+        else:
+            print(f"info: fetch {file_path} from repository {repo_path} in branch {branch}")
+            fetch_url = f"{args.api}/repos/{repo_path}/contents/{file_path}?ref={urllib.parse.quote(branch)}"
+            fetch = session.get(fetch_url, headers=headers, timeout=timeout)
+            if fetch.status_code != 200:
+                try:
+                    fetch_json = fetch.json()
+                    msg = fetch_json.get('message', 'unknown error')
+                except Exception:
+                    msg = 'unknown error'
+                print(f"error: {msg}")
+                exit_code = 1
+                continue
+            fetch_json = fetch.json()
 
-        fetch_json = fetch.json()
         content_original = base64.b64decode(fetch_json['content']).decode('utf-8')
 
         if args.verbose:
@@ -226,7 +239,7 @@ def main():
             print(f"#### END OF SOURCE FILE {file_path} ####")
 
         # replace image in target file
-        pattern = re.escape(image_name) + r'(:(?P<tag>[\w.\-_]{1,127})|)?(@(?P<digest>sha256:[a-f0-9]{64}))?'
+        pattern = re.escape(image_name) + TAG_DIGEST_PATTERN
         content = re.sub(pattern, args.image, content_original)
 
         # check for changes
