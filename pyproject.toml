@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gitops-image-replacer"
+version = "1.0.0"
+authors = [
+    {name = "Simon Lauger", email = "simon@lauger.de"}
+]
+description = "Automated container image updates for GitOps repositories via GitHub API"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+keywords = ["gitops", "docker", "kubernetes", "container", "image", "automation", "github", "ci-cd", "deployment"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "requests>=2.25.0",
+    "PyYAML>=5.4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/slauger/gitops-image-replacer"
+Documentation = "https://github.com/slauger/gitops-image-replacer#readme"
+Repository = "https://github.com/slauger/gitops-image-replacer"
+Issues = "https://github.com/slauger/gitops-image-replacer/issues"
+Changelog = "https://github.com/slauger/gitops-image-replacer/blob/main/CHANGELOG.md"
+
+[project.scripts]
+gitops-image-replacer = "gitops_image_replacer.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

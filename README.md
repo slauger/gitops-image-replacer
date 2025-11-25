@@ -21,43 +21,58 @@ A lightweight CLI tool that automates container image updates in GitOps reposito
 
 ## Installation
 
-```bash
-# Run directly
-python3 gitops-image-replacer.py --help
+### Via pip (recommended)
 
-# Or mark as executable
-chmod +x gitops-image-replacer.py
-./gitops-image-replacer.py --help
+```bash
+# Install from PyPI
+pip install gitops-image-replacer
+
+# Verify installation
+gitops-image-replacer --help
+```
+
+### From source
+
+```bash
+# Clone repository
+git clone https://github.com/slauger/gitops-image-replacer.git
+cd gitops-image-replacer
+
+# Install in development mode
+pip install -e .
+
+# Or run directly
+python -m gitops_image_replacer --help
 ```
 
 ## Quick Start
 
-1. Create a configuration file (default: `gitops-image-replacer.json`).  
+1. Create a configuration file (default: `gitops-image-replacer.json`).
 2. Run a dry-run:
    ```bash
-   ./gitops-image-replacer.py docker.io/example/app:2.0.0
+   gitops-image-replacer docker.io/example/app:2.0.0
 
-   ./gitops-image-replacer.py docker.io/example/app:2.0.0@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
+   gitops-image-replacer docker.io/example/app:2.0.0@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
 
-   ./gitops-image-replacer.py docker.io/example/app@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
+   gitops-image-replacer docker.io/example/app@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
 
-   ./gitops-image-replacer.py --config gitops-image-replacer.json docker.io/example/app:2.0.0
+   gitops-image-replacer --config gitops-image-replacer.json docker.io/example/app:2.0.0
    ```
 3. Apply changes (commit to target repos):
    ```bash
-   ./gitops-image-replacer.py --apply docker.io/example/app:2.0.0
+   gitops-image-replacer --apply docker.io/example/app:2.0.0
 
-   ./gitops-image-replacer.py --config gitops-image-replacer.json --apply docker.io/example/app:2.0.0
+   gitops-image-replacer --config gitops-image-replacer.json --apply docker.io/example/app:2.0.0
    ```
 
 ## CLI
 
 ```text
-usage: gitops-image-replacer.py [-h] [--config <file>] [--apply] [--ci]
-                                [--name <string>] [--email <string>]
-                                [--message <string>] [--api <string>]
-                                [--verbose]
-                                <string>
+usage: gitops-image-replacer [-h] [--config <file>] [--apply] [--ci]
+                              [--name <string>] [--email <string>]
+                              [--message <string>] [--api <string>]
+                              [--verbose]
+                              <string>
 ```
 
 - `--config` Path to the configuration file (default: `gitops-image-replacer.json`). JSON recommended.
@@ -270,7 +285,7 @@ Update production manifests when a new image is built:
 
 ```bash
 # In your CI/CD pipeline after building image
-./gitops-image-replacer.py --apply docker.io/myorg/myapp:${CI_COMMIT_SHA}
+gitops-image-replacer --apply docker.io/myorg/myapp:${CI_COMMIT_SHA}
 ```
 
 ### Multi-Environment Updates
@@ -301,7 +316,7 @@ Use CI mode to update different environments based on branch:
 Update images with immutable digest references:
 
 ```bash
-./gitops-image-replacer.py --apply \
+gitops-image-replacer --apply \
   registry.example.com/myapp:v2.0.0@sha256:4bcff63911fcb4448bd4fdacec207030997caf25e9bea4045fa6c8c44de311d1
 ```
 
