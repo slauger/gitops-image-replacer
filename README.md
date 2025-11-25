@@ -1,5 +1,10 @@
 # gitops-image-replacer
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![PyPI version](https://img.shields.io/pypi/v/gitops-image-replacer.svg)](https://pypi.org/project/gitops-image-replacer/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/gitops-image-replacer.svg)](https://pypi.org/project/gitops-image-replacer/)
+
 A lightweight CLI tool that automates container image updates in GitOps repositories. Replace image tags and/or digests across multiple GitHub repositories with a single command, enabling automated deployment workflows.
 
 ## Features
