@@ -53,7 +53,7 @@ build_command = "pip install build && python -m build"
 commit_parser = "angular"
 major_on_zero = true
 tag_format = "v{version}"
-upload_to_vcs_release = false
+upload_to_vcs_release = true
 logging_use_named_masks = false
 
 [tool.semantic_release.branches.main]

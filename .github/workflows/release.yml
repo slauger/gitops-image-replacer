@@ -101,20 +101,10 @@ jobs:
         uses: python-semantic-release/python-semantic-release@v10.5.2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          vcs_release: false
+          vcs_release: true
           commit: false
           tag: true
           push: true
-
-      - name: Create GitHub Release
-        if: steps.semantic.outputs.released == 'true'
-        run: |
-          gh release create v${{ steps.semantic.outputs.version }} \
-            --title "v${{ steps.semantic.outputs.version }}" \
-            --notes "Release v${{ steps.semantic.outputs.version }}" \
-            --target main
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-testpypi:
     name: Publish to TestPyPI
