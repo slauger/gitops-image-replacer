@@ -1,6 +1,16 @@
 # CHANGELOG
 
-## v0.1.0 (2025-11-25)
+## v1.0.0 (2025-11-25)
+
+### Breaking
+
+* feat!: initial 1.0.0 release
+
+BREAKING CHANGE: First stable release ([`563f17a`](https://github.com/slauger/gitops-image-replacer/commit/563f17ae109a524cca15a59c37309e03a4e3bfd8))
+
+### Chore
+
+* chore(release): 0.1.0 ([`9097cfd`](https://github.com/slauger/gitops-image-replacer/commit/9097cfdfb271d77f7c97aacede3885d31a90da32))
 
 ### Documentation
 
