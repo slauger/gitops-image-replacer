@@ -54,6 +54,7 @@ commit_parser = "angular"
 major_on_zero = true
 tag_format = "v{version}"
 upload_to_vcs_release = false
+logging_use_named_masks = false
 
 [tool.semantic_release.branches.main]
 match = "(main|master)"

@@ -101,7 +101,6 @@ jobs:
         uses: python-semantic-release/python-semantic-release@v10.5.2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          root_options: "-vv"
           vcs_release: false
           commit: false
           tag: true
