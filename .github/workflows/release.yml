@@ -1,4 +1,4 @@
-name: Release
+name: Test, Release and Publish
 
 on:
   push:
@@ -15,34 +15,38 @@ permissions:
 
 jobs:
   test:
-    name: Test
+    name: Test Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
+      - name: Install package
         run: |
           python -m pip install --upgrade pip
           pip install -e .
 
-      - name: Test CLI execution
+      - name: Test CLI
         run: |
           gitops-image-replacer --help
 
   build:
-    name: Build
+    name: Build Package
     runs-on: ubuntu-latest
     needs: test
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -67,85 +71,99 @@ jobs:
           path: dist/
 
   release:
-    name: Release
+    name: Create Release
     runs-on: ubuntu-latest
-    needs: build
+    needs: [test, build]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     outputs:
-      version: ${{ steps.semver.outputs.version }}
-      tag: ${{ steps.semver.outputs.tag }}
+      released: ${{ steps.semantic.outputs.released }}
+      version: ${{ steps.semantic.outputs.version }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get version from pyproject.toml
-        id: semver
-        run: |
-          VERSION=$(grep -E '^version = ' pyproject.toml | cut -d'"' -f2)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Check if tag exists
-        id: check_tag
-        run: |
-          if git rev-parse "v${{ steps.semver.outputs.version }}" >/dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Download artifacts
-        if: steps.check_tag.outputs.exists == 'false'
-        uses: actions/download-artifact@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          name: dist
-          path: dist/
+          python-version: '3.12'
 
-      - name: Create Release
-        if: steps.check_tag.outputs.exists == 'false'
-        uses: ncipollo/create-release@v1
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Python Semantic Release
+        id: semantic
+        uses: python-semantic-release/python-semantic-release@v9.8.8
         with:
-          tag: ${{ steps.semver.outputs.tag }}
-          name: Release ${{ steps.semver.outputs.version }}
-          artifacts: "dist/*"
-          generateReleaseNotes: true
-          makeLatest: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          root_options: "-vv"
 
   publish-testpypi:
     name: Publish to TestPyPI
     runs-on: ubuntu-latest
     needs: release
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: needs.release.outputs.released == 'true'
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/gitops-image-replacer
+      url: https://test.pypi.org/project/gitops-image-replacer/
+
     steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          name: dist
-          path: dist/
+          ref: v${{ needs.release.outputs.version }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build package
+        run: python -m build
 
       - name: Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
 
   publish-pypi:
     name: Publish to PyPI
     runs-on: ubuntu-latest
-    needs: publish-testpypi
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [release, publish-testpypi]
+    if: needs.release.outputs.released == 'true'
     environment:
       name: pypi
-      url: https://pypi.org/p/gitops-image-replacer
+      url: https://pypi.org/project/gitops-image-replacer/
+
     steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          name: dist
-          path: dist/
+          ref: v${{ needs.release.outputs.version }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build package
+        run: python -m build
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

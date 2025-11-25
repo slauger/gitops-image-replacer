@@ -46,3 +46,10 @@ gitops-image-replacer = "gitops_image_replacer.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+branch = "main"
+build_command = "pip install build && python -m build"
+major_on_zero = true
+upload_to_vcs_release = true
