@@ -102,8 +102,20 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           root_options: "-vv"
-          vcs_release: true
+          vcs_release: false
           commit: false
+          tag: true
+          push: true
+
+      - name: Create GitHub Release
+        if: steps.semantic.outputs.released == 'true'
+        run: |
+          gh release create v${{ steps.semantic.outputs.version }} \
+            --title "v${{ steps.semantic.outputs.version }}" \
+            --notes "Release v${{ steps.semantic.outputs.version }}" \
+            --target main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-testpypi:
     name: Publish to TestPyPI
