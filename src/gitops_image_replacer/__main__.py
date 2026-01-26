@@ -64,7 +64,7 @@ def main():
     parser.add_argument(
         '--ci',
         action='store_true',
-        help='enable the CI mode, which validates the environment variable GIT_REF against patterns in the config file',
+        help='enable the CI mode, which validates the environment variable GITHUB_REF against patterns in the config file',
         required=False,
     )
     parser.add_argument(
@@ -107,7 +107,7 @@ def main():
     args = parser.parse_args()
 
     # get variables from environment
-    git_ref      = os.getenv('GIT_REF', None)
+    git_ref      = os.getenv('GITHUB_REF', os.getenv('GIT_REF', None))
     github_token = os.getenv('GITHUB_TOKEN', None)
 
     # validate variables
@@ -116,7 +116,7 @@ def main():
         sys.exit(1)
 
     if args.ci and not git_ref:
-        print("error: GIT_REF is not set (required in --ci mode)")
+        print("error: GITHUB_REF is not set (required in --ci mode)")
         sys.exit(1)
 
     # load config file

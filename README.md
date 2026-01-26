@@ -10,7 +10,7 @@ A lightweight CLI tool that automates container image updates in GitOps reposito
 ## Features
 
 - **Flexible Modes**: Dry-run for validation, apply mode for commits
-- **CI/CD Integration**: Built-in CI mode with `GIT_REF` pattern matching
+- **CI/CD Integration**: Built-in CI mode with `GITHUB_REF` pattern matching
 - **Complete Image Support**: Handles tags, digests, and combined references (e.g., `registry.io/ns/app:1.2.3@sha256:...`)
 - **Multiple Repositories**: Update images across any number of repos and files
 - **Configuration Formats**: JSON (default) and YAML support
@@ -82,7 +82,7 @@ usage: gitops-image-replacer [-h] [--config <file>] [--apply] [--ci]
 
 - `--config` Path to the configuration file (default: `gitops-image-replacer.json`). JSON recommended.
 - `--apply` Apply changes (commit). Without this flag the tool runs in dry-run.
-- `--ci` CI mode: validates `GIT_REF` against `when`/`except` regex patterns from config.
+- `--ci` CI mode: validates `GITHUB_REF` against `when`/`except` regex patterns from config.
 - `--name` Commit author name (default: env `GIT_COMMIT_NAME` or `Replacer Bot`).
 - `--email` Commit author email (default: env `GIT_COMMIT_EMAIL` or `replacer-bot@localhost.localdomain`).
 - `--message` Commit message template (default: `fix: update image to {}`).
@@ -93,7 +93,7 @@ usage: gitops-image-replacer [-h] [--config <file>] [--apply] [--ci]
 ### Environment
 
 - `GITHUB_TOKEN` **(required)** – token with access to read/write repository contents.
-- `GIT_REF` *(required when `--ci`)* – the current ref string, e.g., `refs/heads/main`.
+- `GITHUB_REF` *(required when `--ci`)* – the current ref string, e.g., `refs/heads/main`. Falls back to `GIT_REF` for backwards compatibility.
 
 Recommended token scopes:  
 - Public repos only: `public_repo`  
@@ -125,8 +125,8 @@ Default format is **JSON**. YAML (`.yaml`/`.yml`) is supported as well.
 - `repository` (string): `ORG/REPO` path on GitHub/GHE
 - `branch` (string): target branch
 - `file` (string): target file path in the repository
-- `when` (string, optional): regex that must match `GIT_REF` when `--ci` is enabled
-- `except` (string, optional): regex that must **not** match `GIT_REF` when `--ci` is enabled
+- `when` (string, optional): regex that must match `GITHUB_REF` when `--ci` is enabled
+- `except` (string, optional): regex that must **not** match `GITHUB_REF` when `--ci` is enabled
 
 > The tool uses `re.match` (anchored at the string start). Use `^...$` in your patterns if you require a full match.
 
